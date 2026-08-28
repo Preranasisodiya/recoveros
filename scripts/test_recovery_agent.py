@@ -314,3 +314,125 @@ print(
 print(
     "\n=========================================="
 )
+
+# ============================================================
+# CLOSED-LOOP RECOVERY TEST
+# ============================================================
+
+print(
+    "\n=========================================="
+)
+
+print(
+    "Closed-Loop Recovery Test"
+)
+
+print(
+    "=========================================="
+)
+
+
+closed_loop_transaction = {
+
+    "transaction_id":
+        "TXN_AGENT_CLOSED_LOOP",
+
+    "amount":
+        7499.00,
+
+    "status":
+        "failed",
+
+    "failure_reason":
+        "bank_timeout",
+
+    "payment_method":
+        "card",
+
+    "attempt_number":
+        1,
+
+    "historical_success_rate":
+        0.91,
+
+    "customer_tenure_days":
+        420,
+
+    "avg_transaction_amount":
+        6500.00,
+
+    "transaction_hour":
+        14,
+
+    "bank":
+        "HDFC",
+
+    "checkout_completed":
+        True,
+
+    "subscription_flag":
+        False,
+}
+
+
+closed_loop_state = agent.process(
+    closed_loop_transaction
+)
+
+
+print(
+    "\nDecision before execution:"
+)
+
+print(
+    closed_loop_state.decision
+)
+
+print(
+    f"Recovery probability: "
+    f"{closed_loop_state.recovery_probability:.2%}"
+)
+
+
+closed_loop_state = (
+    agent.execute_recovery(
+        closed_loop_state,
+        forced_outcome="success",
+    )
+)
+
+
+print(
+    "\nResult after execution:"
+)
+
+print(
+    f"Status: "
+    f"{closed_loop_state.status}"
+)
+
+print(
+    f"Recovered amount: "
+    f"₹{closed_loop_state.recovered_amount:,.2f}"
+)
+
+
+print(
+    "\nUpdated audit trail:"
+)
+
+for index, action in enumerate(
+    closed_loop_state.actions_taken,
+    start=1,
+):
+
+    print(
+        f"{index}. "
+        f"{action['action']} → "
+        f"{action['result']}"
+    )
+
+
+print(
+    "\n=========================================="
+)

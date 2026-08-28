@@ -6,6 +6,7 @@ from src.risk.revenue_risk_detector import RevenueRiskDetector
 from src.root_cause.root_cause_engine import RootCauseEngine
 from src.ml.recovery_model import RecoveryProbabilityModel
 from src.decision.decision_engine import DecisionEngine
+from src.recovery.recovery_simulator import RecoverySimulator
 
 from src.agent.recovery_state import RecoveryState
 
@@ -42,6 +43,8 @@ class RecoveryAgent:
         self.recovery_model = RecoveryProbabilityModel()
 
         self.decision_engine = DecisionEngine()
+
+        self.recovery_simulator = RecoverySimulator()
 
         self.model_path = model_path
 
@@ -439,6 +442,35 @@ class RecoveryAgent:
         )
 
         return state
+
+    def execute_recovery(
+        self,
+        state,
+        forced_outcome=None,
+    ):
+        """
+        Execute the recovery action selected by the
+        Decision Engine.
+
+        The RecoverySimulator performs only safe,
+        simulated actions.
+
+        Returns:
+            Updated RecoveryState
+        """
+
+        if not isinstance(
+            state,
+            RecoveryState,
+        ):
+            raise TypeError(
+                "state must be a RecoveryState instance."
+            )
+
+        return self.recovery_simulator.execute(
+            state,
+            forced_outcome=forced_outcome,
+        )
 
     # ========================================================
     # SUMMARY
