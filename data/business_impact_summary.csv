@@ -1,0 +1,12 @@
+metric,value
+failed_transactions,2955.0
+failed_payment_revenue,9823713.32
+automated_recovery_revenue,6334614.12
+simulated_recovered_revenue,2510187.95
+unrecovered_revenue,7313525.37
+overall_simulated_recovery_rate,0.255523330967887
+automated_recovery_rate,0.39626532926049807
+escalated_transactions,0.0
+escalated_revenue,0.0
+high_value_transactions,0.0
+high_value_transactions_escalated,0.0
