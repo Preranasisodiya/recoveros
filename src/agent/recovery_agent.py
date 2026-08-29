@@ -151,6 +151,9 @@ class RecoveryAgent:
                 "Transaction must be provided as a dictionary."
             )
 
+        transaction = transaction.copy()
+        transaction.setdefault("status", "failed")
+
         transaction_id = transaction.get(
             "transaction_id"
         )
