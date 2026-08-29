@@ -518,6 +518,152 @@ if not transactions_df.empty:
 
 st.divider()
 
+# ============================================================
+# TRANSACTION INVESTIGATION
+# ============================================================
+
+st.divider()
+
+st.subheader(
+    "Transaction Investigation"
+)
+
+if not transactions_df.empty:
+
+    selected_transaction_id = st.selectbox(
+        "Select a transaction",
+        transactions_df["transaction_id"].tolist(),
+    )
+
+    selected_transaction = transactions_df[
+        transactions_df["transaction_id"]
+        == selected_transaction_id
+    ].iloc[0]
+
+    # --------------------------------------------------------
+    # BASIC TRANSACTION INFORMATION
+    # --------------------------------------------------------
+
+    st.markdown("### Transaction Details")
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric(
+            "Transaction Amount",
+            f"₹{selected_transaction['amount']:,.2f}",
+        )
+
+    with col2:
+        st.metric(
+            "Risk Level",
+            selected_transaction["risk_level"],
+        )
+
+    with col3:
+        st.metric(
+            "Recovery Probability",
+            f"{selected_transaction['recovery_probability'] * 100:.2f}%",
+        )
+
+    with col4:
+        st.metric(
+            "Recovered Amount",
+            f"₹{selected_transaction['recovered_amount']:,.2f}",
+        )
+
+    # --------------------------------------------------------
+    # RECOVERY ANALYSIS
+    # --------------------------------------------------------
+
+    st.markdown("### Recovery Analysis")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.write(
+            "**Failure Reason:**",
+            selected_transaction["failure_reason"],
+        )
+
+        st.write(
+            "**Root Cause:**",
+            selected_transaction["root_cause"],
+        )
+
+        st.write(
+            "**Cause Category:**",
+            selected_transaction["cause_category"],
+        )
+
+        st.write(
+            "**Cause Nature:**",
+            selected_transaction["cause_nature"],
+        )
+
+        st.write(
+            "**Root Cause Confidence:**",
+            f"{selected_transaction['root_cause_confidence'] * 100:.2f}%",
+        )
+
+    with col2:
+
+        st.write(
+            "**Recovery Direction:**",
+            selected_transaction["recovery_direction"],
+        )
+
+        st.write(
+            "**Decision:**",
+            selected_transaction["decision"],
+        )
+
+        st.write(
+            "**Decision Confidence:**",
+            f"{selected_transaction['decision_confidence'] * 100:.2f}%",
+        )
+
+        st.write(
+            "**Final Status:**",
+            selected_transaction["status"],
+        )
+
+        st.write(
+            "**Escalation Required:**",
+            str(selected_transaction["escalation_required"]),
+        )
+
+    # --------------------------------------------------------
+    # RECOVERY JOURNEY
+    # --------------------------------------------------------
+
+    st.markdown("### Recovery Journey")
+
+    journey = pd.DataFrame(
+        {
+            "Stage": [
+                "Risk Assessment",
+                "Root Cause Analysis",
+                "Recovery Prediction",
+                "Decision",
+                "Recovery Outcome",
+            ],
+            "Result": [
+                selected_transaction["risk_level"],
+                selected_transaction["root_cause"],
+                f"{selected_transaction['recovery_probability'] * 100:.2f}%",
+                selected_transaction["decision"],
+                selected_transaction["status"],
+            ],
+        }
+    )
+
+    st.dataframe(
+        journey,
+        use_container_width=True,
+        hide_index=True,
+    )
 
 # ============================================================
 # TRANSACTION TABLE
@@ -585,6 +731,278 @@ else:
         "No transaction data available."
     )
 
+# ============================================================
+# LIVE RECOVERY SIMULATOR
+# ============================================================
+
+st.divider()
+
+st.subheader(
+    "Live Recovery Simulator"
+)
+
+st.write(
+    "Run a recovery decision for a new failed payment "
+    "using the RecoverOS API."
+)
+
+col1, col2 = st.columns(2)
+
+with col1:
+
+    transaction_id = st.text_input(
+        "Transaction ID",
+        value="TXN_DASHBOARD_DEMO",
+    )
+
+    amount = st.number_input(
+        "Transaction Amount (₹)",
+        min_value=1.0,
+        value=7499.0,
+        step=100.0,
+    )
+
+    failure_reason = st.selectbox(
+        "Failure Reason",
+        [
+            "bank_timeout",
+            "network_error",
+            "insufficient_funds",
+            "bank_declined",
+            "authentication_failed",
+            "expired_card",
+        ],
+    )
+
+    payment_method = st.selectbox(
+        "Payment Method",
+        [
+            "credit_card",
+            "debit_card",
+            "upi",
+            "net_banking",
+        ],
+    )
+
+with col2:
+
+    attempt_number = st.number_input(
+        "Attempt Number",
+        min_value=1,
+        value=1,
+        step=1,
+    )
+
+    historical_success_rate = st.number_input(
+        "Historical Success Rate",
+        min_value=0.0,
+        max_value=1.0,
+        value=0.91,
+        step=0.01,
+    )
+
+    customer_tenure_days = st.number_input(
+        "Customer Tenure (days)",
+        min_value=0,
+        value=850,
+        step=10,
+    )
+
+    avg_transaction_amount = st.number_input(
+        "Average Transaction Amount (₹)",
+        min_value=0.0,
+        value=4200.0,
+        step=100.0,
+    )
+
+transaction_hour = st.slider(
+    "Transaction Hour",
+    min_value=0,
+    max_value=23,
+    value=14,
+)
+
+bank = st.text_input(
+    "Bank",
+    value="HDFC",
+)
+
+checkout_completed = st.checkbox(
+    "Checkout Completed",
+    value=True,
+)
+
+subscription_flag = st.checkbox(
+    "Subscription Transaction",
+    value=False,
+)
+
+if st.button(
+    "Run Recovery Decision",
+    type="primary",
+):
+
+    payload = {
+        "transaction_id": transaction_id,
+        "amount": amount,
+        "failure_reason": failure_reason,
+        "payment_method": payment_method,
+        "attempt_number": int(attempt_number),
+        "historical_success_rate": historical_success_rate,
+        "customer_tenure_days": int(customer_tenure_days),
+        "avg_transaction_amount": avg_transaction_amount,
+        "transaction_hour": transaction_hour,
+        "bank": bank,
+        "checkout_completed": checkout_completed,
+        "subscription_flag": subscription_flag,
+    }
+
+    try:
+
+        response = requests.post(
+            f"{API_BASE_URL}/recover",
+            json=payload,
+            timeout=30,
+        )
+
+        response.raise_for_status()
+
+        result = response.json()
+
+        st.success(
+            "Recovery decision completed."
+        )
+
+        st.markdown(
+            "### Recovery Result"
+        )
+
+        result_col1, result_col2, result_col3, result_col4 = (
+            st.columns(4)
+        )
+
+        with result_col1:
+
+            st.metric(
+                "Risk Level",
+                result.get(
+                    "risk_level",
+                    "N/A",
+                ),
+            )
+
+        with result_col2:
+
+            probability = (
+                result.get(
+                    "recovery_probability",
+                    0,
+                )
+                * 100
+            )
+
+            st.metric(
+                "Recovery Probability",
+                f"{probability:.2f}%",
+            )
+
+        with result_col3:
+
+            st.metric(
+                "Decision",
+                result.get(
+                    "decision",
+                    "N/A",
+                ),
+            )
+
+        with result_col4:
+
+            st.metric(
+                "Status",
+                result.get(
+                    "status",
+                    "N/A",
+                ),
+            )
+
+        st.markdown(
+            "### Recovery Details"
+        )
+
+        details = {
+            "Transaction ID":
+                result.get("transaction_id"),
+
+            "Amount":
+                f"₹{result.get('amount', 0):,.2f}",
+
+            "Failure Reason":
+                result.get("failure_reason"),
+
+            "Root Cause":
+                result.get("root_cause"),
+
+            "Recovery Direction":
+                result.get("recovery_direction"),
+
+            "Decision Confidence":
+                f"{result.get('decision_confidence', 0) * 100:.2f}%",
+
+            "Recovered Amount":
+                f"₹{result.get('recovered_amount', 0):,.2f}",
+
+            "Escalation Required":
+                result.get("escalation_required"),
+
+            "Escalation Reason":
+                result.get("escalation_reason"),
+        }
+
+        details_df = pd.DataFrame(
+            list(details.items()),
+            columns=[
+                "Field",
+                "Value",
+            ],
+        )
+
+        st.dataframe(
+            details_df,
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        if result.get(
+            "escalation_required",
+            False,
+        ):
+
+            st.warning(
+                "Safety control triggered: "
+                "this transaction requires manual review."
+            )
+
+        elif result.get(
+            "status"
+        ) == "recovered":
+
+            st.success(
+                f"₹{result.get('recovered_amount', 0):,.2f} "
+                "revenue recovered successfully."
+            )
+
+    except requests.exceptions.RequestException as exc:
+
+        st.error(
+            f"Recovery API request failed: {exc}"
+        )
+
+    except Exception as exc:
+
+        st.error(
+            f"Unable to process recovery result: {exc}"
+        )
 
 # ============================================================
 # FOOTER
