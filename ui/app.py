@@ -9,10 +9,9 @@ import streamlit as st
 
 API_BASE_URL = "http://127.0.0.1:8000"
 
-
 st.set_page_config(
     page_title="RecoverOS",
-    page_icon="💳",
+    page_icon="\U0001F4B3",
     layout="wide",
 )
 
@@ -109,7 +108,7 @@ else:
 
 
 # ============================================================
-# LOAD METRICS
+# LOAD BUSINESS METRICS
 # ============================================================
 
 metrics_response = get_api_data(
@@ -117,9 +116,7 @@ metrics_response = get_api_data(
 )
 
 if not metrics_response:
-
     st.stop()
-
 
 metrics = metrics_response.get(
     "metrics",
@@ -150,7 +147,7 @@ with col2:
 
     st.metric(
         "Failed-Payment Revenue",
-        f"₹{metrics.get('failed_payment_revenue', 0):,.2f}",
+        f"\u20B9{metrics.get('failed_payment_revenue', 0):,.2f}",
     )
 
 
@@ -158,7 +155,7 @@ with col3:
 
     st.metric(
         "Recovered Revenue",
-        f"₹{metrics.get('simulated_recovered_revenue', 0):,.2f}",
+        f"\u20B9{metrics.get('simulated_recovered_revenue', 0):,.2f}",
     )
 
 
@@ -178,14 +175,9 @@ with col4:
     )
 
 
-st.divider()
-
-
 # ============================================================
 # SECONDARY METRICS
 # ============================================================
-
-
 
 col1, col2, col3, col4 = st.columns(4)
 
@@ -194,7 +186,7 @@ with col1:
 
     st.metric(
         "Automated Recovery Revenue",
-        f"₹{metrics.get('automated_recovery_revenue', 0):,.2f}",
+        f"\u20B9{metrics.get('automated_recovery_revenue', 0):,.2f}",
     )
 
 
@@ -218,7 +210,7 @@ with col3:
 
     st.metric(
         "Unrecovered Revenue",
-        f"₹{metrics.get('unrecovered_revenue', 0):,.2f}",
+        f"\u20B9{metrics.get('unrecovered_revenue', 0):,.2f}",
     )
 
 
@@ -234,7 +226,7 @@ st.divider()
 
 
 # ============================================================
-# TRANSACTION DATA
+# LOAD TRANSACTION DATA
 # ============================================================
 
 transactions_response = get_api_data(
@@ -242,9 +234,7 @@ transactions_response = get_api_data(
 )
 
 if not transactions_response:
-
     st.stop()
-
 
 transactions = transactions_response.get(
     "transactions",
@@ -257,7 +247,255 @@ transactions_df = pd.DataFrame(
 
 
 # ============================================================
-# DECISION DISTRIBUTION
+# BUSINESS IMPACT ANALYSIS
+# ============================================================
+
+st.subheader(
+    "Business Impact Analysis"
+)
+
+if not transactions_df.empty:
+
+    # --------------------------------------------------------
+    # Prepare revenue columns
+    # --------------------------------------------------------
+
+    transactions_df[
+        "recovered_amount"
+    ] = pd.to_numeric(
+        transactions_df[
+            "recovered_amount"
+        ],
+        errors="coerce"
+    ).fillna(0)
+
+    transactions_df[
+        "amount"
+    ] = pd.to_numeric(
+        transactions_df[
+            "amount"
+        ],
+        errors="coerce"
+    ).fillna(0)
+
+    transactions_df[
+        "recovery_probability"
+    ] = pd.to_numeric(
+        transactions_df[
+            "recovery_probability"
+        ],
+        errors="coerce"
+    ).fillna(0)
+
+    # --------------------------------------------------------
+    # Decision-level analysis
+    # --------------------------------------------------------
+
+    decision_summary = (
+        transactions_df
+        .groupby("decision")
+        .agg(
+            transactions=(
+                "transaction_id",
+                "count"
+            ),
+            revenue=(
+                "amount",
+                "sum"
+            ),
+            recovered=(
+                "recovered_amount",
+                "sum"
+            ),
+        )
+        .sort_values(
+            "revenue",
+            ascending=False
+        )
+    )
+
+    decision_summary[
+        "recovery_rate"
+    ] = (
+        decision_summary["recovered"]
+        / decision_summary["revenue"]
+        .replace(0, pd.NA)
+    ).fillna(0)
+
+    # --------------------------------------------------------
+    # Risk-level analysis
+    # --------------------------------------------------------
+
+    risk_summary = (
+        transactions_df
+        .groupby("risk_level")
+        .agg(
+            transactions=(
+                "transaction_id",
+                "count"
+            ),
+            revenue=(
+                "amount",
+                "sum"
+            ),
+            recovered=(
+                "recovered_amount",
+                "sum"
+            ),
+        )
+    )
+
+    risk_summary[
+        "recovery_rate"
+    ] = (
+        risk_summary["recovered"]
+        / risk_summary["revenue"]
+        .replace(0, pd.NA)
+    ).fillna(0)
+
+    # --------------------------------------------------------
+    # Root-cause analysis
+    # --------------------------------------------------------
+
+    root_cause_summary = (
+        transactions_df
+        .groupby("root_cause")
+        .agg(
+            revenue=(
+                "amount",
+                "sum"
+            ),
+            recovered=(
+                "recovered_amount",
+                "sum"
+            ),
+        )
+        .sort_values(
+            "revenue",
+            ascending=False
+        )
+        .head(6)
+    )
+
+    root_cause_summary[
+        "recovery_rate"
+    ] = (
+        root_cause_summary["recovered"]
+        / root_cause_summary["revenue"]
+        .replace(0, pd.NA)
+    ).fillna(0)
+
+    # --------------------------------------------------------
+    # Charts
+    # --------------------------------------------------------
+
+    chart_col1, chart_col2 = st.columns(2)
+
+    with chart_col1:
+
+        st.markdown(
+            "**Revenue by Recovery Decision**"
+        )
+
+        st.bar_chart(
+            decision_summary[
+                "revenue"
+            ]
+        )
+
+    with chart_col2:
+
+        st.markdown(
+            "**Recovery Rate by Risk Level**"
+        )
+
+        risk_chart = (
+            risk_summary[
+                "recovery_rate"
+            ] * 100
+        )
+
+        st.bar_chart(
+            risk_chart
+        )
+
+    # --------------------------------------------------------
+    # Root cause revenue chart
+    # --------------------------------------------------------
+
+    st.markdown(
+        "**Top Root Causes by Revenue**"
+    )
+
+    st.bar_chart(
+        root_cause_summary[
+            "revenue"
+        ]
+    )
+
+    # --------------------------------------------------------
+    # Business impact table
+    # --------------------------------------------------------
+
+    st.markdown(
+        "**Business Impact by Decision**"
+    )
+
+    business_table = decision_summary.copy()
+
+    business_table[
+        "recovery_rate"
+    ] = (
+        business_table[
+            "recovery_rate"
+        ] * 100
+    ).round(2)
+
+    business_table[
+        "revenue"
+    ] = business_table[
+        "revenue"
+    ].round(2)
+
+    business_table[
+        "recovered"
+    ] = business_table[
+        "recovered"
+    ].round(2)
+
+    business_table = (
+        business_table
+        .rename(
+            columns={
+                "transactions":
+                    "Transactions",
+                "revenue":
+                    "Revenue",
+                "recovered":
+                    "Recovered Revenue",
+                "recovery_rate":
+                    "Recovery Rate (%)",
+            }
+        )
+    )
+
+    st.dataframe(
+        business_table,
+        use_container_width=True,
+    )
+
+else:
+
+    st.info(
+        "No transaction data available."
+    )
+
+
+st.divider()
+
+
+# ============================================================
+# RECOVERY DECISION DISTRIBUTION
 # ============================================================
 
 st.subheader(
@@ -316,14 +554,20 @@ if not transactions_df.empty:
 
     display_df = display_df.rename(
         columns={
-            "transaction_id": "Transaction",
-            "amount": "Amount",
-            "risk_level": "Risk",
-            "root_cause": "Root Cause",
+            "transaction_id":
+                "Transaction",
+            "amount":
+                "Amount",
+            "risk_level":
+                "Risk",
+            "root_cause":
+                "Root Cause",
             "recovery_probability":
                 "Recovery Probability (%)",
-            "decision": "Decision",
-            "status": "Status",
+            "decision":
+                "Decision",
+            "status":
+                "Status",
             "recovered_amount":
                 "Recovered Amount",
         }
